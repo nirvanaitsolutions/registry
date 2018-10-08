@@ -23,16 +23,19 @@ redis.getAsync('block_height').then((blockHeight) => {
 
   nextBlock();
 }).catch((err) => {
-  console.error("Failed to get 'block_height' from Redis", err);
+  console.error("Failed to get 'block_height' on Redis", err);
 });
 
 const nextBlock = () => {
   if (blocks[0]) {
-    handleBlock(blocks[0]).then(() => {
-      // redis.setAsync('block_height', blockNum).then(() => {
+    handleBlock(blocks[0]).then((blockNum) => {
+      redis.setAsync('block_height', blockNum).then(() => {
+        console.log(`Block ${blockNum} been handled`);
         blocks.shift();
         nextBlock();
-      // });
+      });
+    }).catch((err) => {
+      console.error("Failed to set 'block_height' on Redis", err);
     });
   } else {
     Promise.delay(100).then(() => {
@@ -42,8 +45,7 @@ const nextBlock = () => {
 };
 
 const handleBlock = async (block) => {
-  const blockNum = _.has(block, 'transactions[0].block_num')
-    ? block.transactions[0].block_num : 0;
+  const blockNum = Number.parseInt(block.block_id.slice(0, 8), 16);
   console.log(chalk.blue(`Loaded block ${blockNum} (${block.timestamp})`));
 
   block.transactions.forEach((tx) => {
@@ -58,6 +60,5 @@ const handleBlock = async (block) => {
   });
 
   await Promise.delay(100);
-  console.log(`Block ${blockNum} been handled`);
-  return;
+  return blockNum;
 };
