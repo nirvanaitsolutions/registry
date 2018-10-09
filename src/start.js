@@ -1,5 +1,4 @@
 const chalk = require('chalk');
-const _ = require('lodash');
 const express = require('express');
 const Promise = require('bluebird');
 const client = require('./helpers/client');
@@ -10,37 +9,39 @@ const port = process.env.PORT || 4000;
 const server = app.listen(port, () => console.log(chalk.blue(`Listening on ${port}`)));
 const blocks = [];
 
-redis.getAsync('block_height').then((blockHeight) => {
-  const from = blockHeight ? parseInt(blockHeight) + 1 : 20000000;
-  console.log(chalk.blue(`Last loaded block was ${blockHeight}`));
+const start = () => {
+  redis.getAsync('block_height').then((blockHeight) => {
+    const from = blockHeight ? parseInt(blockHeight) + 1 : 20000000;
+    console.log(chalk.blue(`Last loaded block was ${blockHeight}`));
 
-  const stream = client.blockchain.getBlockStream({ from });
-  stream.on('data', (block) => {
-    blocks.push(block);
-  }).on('end', () => {
-    console.log(chalk.yellow('Stream ended'));
+    const stream = client.blockchain.getBlockStream({ from });
+    stream.on('data', (block) => {
+      blocks.push(block);
+    }).on('end', () => {
+      console.log(chalk.yellow('Stream ended'));
+    });
+
+    handleNextBlock();
+  }).catch((err) => {
+    console.error("Failed to get 'block_height' on Redis", err);
   });
+};
 
-  nextBlock();
-}).catch((err) => {
-  console.error("Failed to get 'block_height' on Redis", err);
-});
-
-const nextBlock = () => {
+const handleNextBlock = () => {
   if (blocks[0]) {
     handleBlock(blocks[0]).then((blockNum) => {
       redis.setAsync('block_height', blockNum).then(() => {
         console.log(`Block ${blockNum} been handled`);
         blocks.shift();
-        nextBlock();
+        handleNextBlock();
       });
     }).catch((err) => {
       console.error("Failed to set 'block_height' on Redis", err);
     });
   } else {
     Promise.delay(100).then(() => {
-      nextBlock();
-    })
+      handleNextBlock();
+    });
   }
 };
 
@@ -62,3 +63,5 @@ const handleBlock = async (block) => {
   await Promise.delay(100);
   return blockNum;
 };
+
+start();

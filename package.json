@@ -3,12 +3,9 @@
   "version": "0.1.0",
   "description": "Steem on-chain apps registry",
   "homepage": "https://steemscript.com",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/steemscript/registry.git"
-  },
-  "bugs": {
-    "url": "https://github.com/steemscript/registry/issues"
+  "license": "MIT",
+  "engines": {
+    "node": "8.11.3"
   },
   "scripts": {
     "start": "node src/start.js",
@@ -17,13 +14,11 @@
     "test": "jest",
     "test:coverage": "jest --coverage"
   },
-  "license": "MIT",
   "dependencies": {
     "bluebird": "^3.5.2",
     "chalk": "^2.4.1",
     "dsteem": "^0.10.1",
     "express": "^4.16.3",
-    "lodash": "^4.17.11",
     "redis": "^2.8.0"
   },
   "devDependencies": {
@@ -35,5 +30,12 @@
     "eslint-plugin-prettier": "^2.6.2",
     "jest": "^23.5.0",
     "prettier": "^1.14.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/steemscript/registry.git"
+  },
+  "bugs": {
+    "url": "https://github.com/steemscript/registry/issues"
   }
 }
