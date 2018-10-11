@@ -1,67 +1,53 @@
-const chalk = require('chalk');
 const express = require('express');
 const Promise = require('bluebird');
+const { init, work } = require('./index');
 const client = require('./helpers/client');
 const redis = require('./helpers/redis');
 
 const app = express();
 const port = process.env.PORT || 4000;
-const server = app.listen(port, () => console.log(chalk.blue(`Listening on ${port}`)));
-const blocks = [];
+const server = app.listen(port, () => console.log(`Listening on ${port}`));
+
+let lastIrreversibleBlockNum = 0;
+const stream = setInterval(() => {
+  client.database.getDynamicGlobalProperties().then(props => {
+    lastIrreversibleBlockNum = parseInt(props.last_irreversible_block_num);
+  });
+}, 3000);
 
 const start = () => {
-  redis.getAsync('block_height').then((blockHeight) => {
-    const from = blockHeight ? parseInt(blockHeight) + 1 : 20000000;
-    console.log(chalk.blue(`Last loaded block was ${blockHeight}`));
-
-    const stream = client.blockchain.getBlockStream({ from });
-    stream.on('data', (block) => {
-      blocks.push(block);
-    }).on('end', () => {
-      console.log(chalk.yellow('Stream ended'));
+  init().then(() => {
+    redis.getAsync('block_height').then(blockHeight => {
+      console.log(`Last loaded block was ${blockHeight}`);
+      const nextBlockNum = blockHeight ? parseInt(blockHeight) + 1 : 1;
+      handleBlock(nextBlockNum);
+    }).catch((err) => {
+      console.error("Failed to get 'block_height' on Redis", err);
     });
-
-    handleNextBlock();
-  }).catch((err) => {
-    console.error("Failed to get 'block_height' on Redis", err);
   });
 };
 
-const handleNextBlock = () => {
-  if (blocks[0]) {
-    handleBlock(blocks[0]).then((blockNum) => {
-      redis.setAsync('block_height', blockNum).then(() => {
-        console.log(`Block ${blockNum} been handled`);
-        blocks.shift();
-        handleNextBlock();
+const handleBlock = (blockNum) => {
+  if (lastIrreversibleBlockNum >= blockNum) {
+    client.database.getBlock(blockNum).then(block => {
+      work(block, blockNum).then(() => {
+        redis.setAsync('block_height', blockNum).then(() => {
+          console.log(`Block ${blockNum} been handled`);
+          handleBlock(blockNum + 1);
+        }).catch((err) => {
+          console.error("Failed to set 'block_height' on Redis", err);
+          handleBlock(blockNum);
+        });
       });
-    }).catch((err) => {
-      console.error("Failed to set 'block_height' on Redis", err);
+    }).catch(err => {
+      console.error(`Request 'getBlock' failed at block num: ${blockNum}, retry`, err);
+      handleBlock(blockNum);
     });
   } else {
     Promise.delay(100).then(() => {
-      handleNextBlock();
+      handleBlock(blockNum);
     });
   }
-};
-
-const handleBlock = async (block) => {
-  const blockNum = Number.parseInt(block.block_id.slice(0, 8), 16);
-  console.log(chalk.blue(`Loaded block ${blockNum} (${block.timestamp})`));
-
-  block.transactions.forEach((tx) => {
-    tx.operations.forEach((op) => {
-      switch (op[0]) {
-        case 'account_update': {
-          console.log(op[1].json_metadata);
-          break;
-        }
-      }
-    })
-  });
-
-  await Promise.delay(100);
-  return blockNum;
 };
 
 start();
