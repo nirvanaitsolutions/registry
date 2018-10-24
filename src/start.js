@@ -32,7 +32,7 @@ const handleBlock = (blockNum) => {
     client.database.getBlock(blockNum).then(block => {
       work(block, blockNum).then(() => {
         redis.setAsync('block_height', blockNum).then(() => {
-          console.log(`Block ${blockNum} been handled`);
+          console.log(`New block height is ${blockNum} ${block.timestamp}`);
           handleBlock(blockNum + 1);
         }).catch((err) => {
           console.error("Failed to set 'block_height' on Redis", err);
