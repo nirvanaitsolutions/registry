@@ -1,6 +1,6 @@
 const express = require('express');
 const Promise = require('bluebird');
-const { init, work } = require('./index');
+const { init, work } = require('./src/index');
 const client = require('./helpers/client');
 const redis = require('./helpers/redis');
 

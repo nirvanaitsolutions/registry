@@ -8,7 +8,7 @@
     "node": "8.11.3"
   },
   "scripts": {
-    "start": "node src/start.js",
+    "start": "node start.js",
     "lint": "eslint 'src/**/*.js'",
     "prettier": "prettier 'src/**/*.js' --list-different",
     "test": "jest",

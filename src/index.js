@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const Promise = require('bluebird');
 const dsteem = require('dsteem');
-const client = require('./helpers/client');
+const client = require('../helpers/client');
 
 const username = process.env.STEEM_USERNAME;
 const privateKey = dsteem.PrivateKey.fromString(process.env.STEEM_WIF);
