@@ -4,7 +4,7 @@ const dsteem = require('dsteem');
 const client = require('../helpers/client');
 
 const username = process.env.STEEM_USERNAME;
-const privateKey = dsteem.PrivateKey.fromString(process.env.STEEM_WIF);
+const privateKey = dsteem.PrivateKey.fromString(process.env.STEEM_POSTING_WIF);
 const following = [];
 
 /** Work to do before streaming the chain */
