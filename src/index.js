@@ -29,7 +29,7 @@ const init = () => {
 
 /** Work to do at each new irreversible block */
 const work = (block, blockNum) => {
-  const promises = [];
+  const accounts = [];
   return new Promise((resolve, reject) => {
     block.transactions.forEach((tx) => {
       tx.operations.forEach((op) => {
@@ -44,12 +44,17 @@ const work = (block, blockNum) => {
               && _.has(metadata, 'profile.type')
               && metadata.profile.type === 'app'
             ) {
-              console.log('Follow account', op[1].account);
-              promises.push(followAccount(op[1].account));
+              accounts.push({
+                following: op[1].account,
+                what: ['blog'],
+              });
               following.push(op[1].account);
             } else if (following.includes(op[1].account)) {
               console.log('Unfollow account', op[1].account);
-              promises.push(followAccount(op[1].account, []));
+              accounts.push({
+                following: op[1].account,
+                what: [],
+              });
               following.splice(following.indexOf(op[1].account), 1);
             }
             break;
@@ -57,14 +62,18 @@ const work = (block, blockNum) => {
         }
       })
     });
-    Promise.each(promises, (p) => p).then(() => {
-      console.log(`Work done on block ${blockNum}`, promises.length);
+    Promise.each(
+      accounts,
+      (account) => followAccount(account.following, account.what)
+    ).then(() => {
+      console.log(`Work done on block ${blockNum}`, accounts.length);
       resolve();
     });
   });
 };
 
 const followAccount = (following, what = ['blog']) => {
+  console.log(`${what ? 'Follow' : 'Unfollow'} account: ${following}`);
   const json = JSON.stringify(['follow', { follower: username, following, what }]);
   const data = {
     id: 'follow',
@@ -72,8 +81,8 @@ const followAccount = (following, what = ['blog']) => {
     required_auths: [],
     required_posting_auths: [username],
   };
-  return Promise.delay(3000).then(
-    () => client.broadcast.json(data, privateKey)
+  return client.broadcast.json(data, privateKey).then(
+    () => Promise.delay(3000)
   );
 };
 
