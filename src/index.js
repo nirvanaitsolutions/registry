@@ -57,9 +57,7 @@ const work = (block, blockNum) => {
         }
       })
     });
-    Promise.each(promises, (promise) => {
-      return promise;
-    }).then(() => {
+    Promise.each(promises, (p) => p).then(() => {
       console.log(`Work done on block ${blockNum}`, promises.length);
       resolve();
     });
@@ -74,7 +72,9 @@ const followAccount = (following, what = ['blog']) => {
     required_auths: [],
     required_posting_auths: [username],
   };
-  return client.broadcast.json(data, privateKey);
+  return Promise.delay(3000).then(
+    () => client.broadcast.json(data, privateKey)
+  );
 };
 
 module.exports = {
